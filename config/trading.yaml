@@ -1,0 +1,48 @@
+# Trading Strategy Configuration
+trading:
+  # Position Management
+  position_size: 0.02          # 2% of portfolio per trade
+  max_positions: 5             # Increased from 3 to 5
+  stop_loss: 0.08              # Increased from 5% to 8%
+  take_profit: 0.12            # Increased from 10% to 12%
+  holding_period: 1            # Reduced from 2 to 1 day
+  
+  # Risk Management
+  max_drawdown: 0.20           # Increased from 15% to 20%
+  volatility_threshold: 0.01   # Reduced from 0.03 to 0.01
+  correlation_threshold: 0.8   # Increased from 0.7 to 0.8
+  
+  # Execution
+  transaction_cost: 0.001      # 0.1% round-trip cost
+  slippage: 0.0005             # 0.05% slippage
+  min_volume: 500000           # Reduced from 1M to 500K
+  
+  # Strategy Parameters
+  contrarian_threshold: 0.1    # Reduced from 0.3 to 0.1
+  mean_reversion_window: 3     # Reduced from 5 to 3 days
+  momentum_threshold: 0.01     # Reduced from 0.02 to 0.01
+  signal_quality_threshold: 0.2  # Reduced from 0.3 to 0.2
+  signal_strength_threshold: 0.2  # Reduced from 0.4 to 0.2
+  min_days_between_signals: 1   # Reduced from 2 to 1 day
+
+# Asset Configuration
+assets:
+  primary: "XOP"               # Primary trading asset
+  benchmarks:
+    - "SPY"                    # S&P 500
+    - "XLE"                    # Energy sector
+    - "USO"                    # Oil futures
+    - "BNO"                    # Brent oil
+  
+  # Related assets for analysis
+  related:
+    - "OIH"                    # Oil services
+    - "XES"                    # Oil & gas equipment
+    - "IEZ"                    # Oil & gas equipment & services
+
+# Time Windows
+windows:
+  sentiment: 3                 # Days for sentiment aggregation
+  volatility: 10               # Days for volatility calculation
+  correlation: 30              # Days for correlation analysis
+  backtest: 252                # Trading days per year 

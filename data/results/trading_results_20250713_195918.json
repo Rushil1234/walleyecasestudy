@@ -1,0 +1,38 @@
+{
+  "total_return": 0.0011270514501341676,
+  "sharpe_ratio": 1.9098150763493216,
+  "max_drawdown": -0.0020983914031715164,
+  "win_rate": 0.5,
+  "total_trades": 3,
+  "benchmark_return": NaN,
+  "excess_return": NaN,
+  "cumulative_returns": "0    0.000000\n1    0.000822\n2    0.000257\n3    0.001031\n4    0.003232\n5    0.002910\n6    0.002372\n7    0.001348\n8    0.001973\n9    0.001127\ndtype: float64",
+  "benchmark_returns": "0   NaN\n1   NaN\n2   NaN\n3   NaN\n4   NaN\n5   NaN\n6   NaN\n7   NaN\n8   NaN\n9   NaN\ndtype: float64",
+  "daily_returns": "0    0.000000\n1    0.000822\n2   -0.000564\n3    0.000773\n4    0.002199\n5   -0.000321\n6   -0.000537\n7   -0.001021\n8    0.000624\n9   -0.000844\ndtype: float64",
+  "trades": [
+    {
+      "date": "2023-06-01 00:00:00-04:00",
+      "action": "buy",
+      "price": 112.67481994628906,
+      "shares": 17.750194772473385,
+      "value": 2000.0,
+      "signal_strength": 0.8783574510442013
+    },
+    {
+      "date": "2023-06-02 00:00:00-04:00",
+      "action": "buy",
+      "price": 117.30606842041016,
+      "shares": 16.708428015638603,
+      "value": 1960.0,
+      "signal_strength": NaN
+    },
+    {
+      "date": "2023-06-06 00:00:00-04:00",
+      "action": "buy",
+      "price": 117.91221618652344,
+      "shares": 16.29008479461973,
+      "value": 1920.8,
+      "signal_strength": 0.6435665288893108
+    }
+  ]
+}

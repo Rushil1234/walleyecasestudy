@@ -1,0 +1,86 @@
+{
+  "events": [
+    {
+      "timestamp": "2025-07-13T23:45:32.553505",
+      "signals_count": 0,
+      "news_count": 0,
+      "performance": 0.0,
+      "trades_count": 0
+    },
+    {
+      "timestamp": "2025-07-13T23:45:59.228533",
+      "signals_count": 0,
+      "news_count": 0,
+      "performance": 0.0,
+      "trades_count": 0
+    },
+    {
+      "timestamp": "2025-07-13T23:47:41.105427",
+      "signals_count": 94,
+      "news_count": 0,
+      "performance": 0.0006443329791881843,
+      "trades_count": 94
+    },
+    {
+      "timestamp": "2025-07-13T23:59:22.307687",
+      "signals_count": 55,
+      "news_count": 0,
+      "performance": -0.05447339113904978,
+      "trades_count": 55
+    },
+    {
+      "timestamp": "2025-07-13T23:59:30.990724",
+      "signals_count": 47,
+      "news_count": 0,
+      "performance": -0.06105475616056385,
+      "trades_count": 47
+    },
+    {
+      "timestamp": "2025-07-13T23:59:40.491012",
+      "signals_count": 75,
+      "news_count": 0,
+      "performance": -0.08019657729259226,
+      "trades_count": 75
+    },
+    {
+      "timestamp": "2025-07-14T00:00:33.856907",
+      "signals_count": 101,
+      "news_count": 0,
+      "performance": 0.05646313042242808,
+      "trades_count": 101
+    },
+    {
+      "timestamp": "2025-07-14T00:30:53.867893",
+      "signals_count": 96,
+      "news_count": 0,
+      "performance": -0.00805523458958196,
+      "trades_count": 96
+    },
+    {
+      "timestamp": "2025-07-14T00:33:23.713985",
+      "signals_count": 96,
+      "news_count": 0,
+      "performance": -0.03409273702535764,
+      "trades_count": 96
+    },
+    {
+      "timestamp": "2025-07-14T00:43:18.105116",
+      "signals_count": 105,
+      "news_count": 0,
+      "performance": -0.06450067001946096,
+      "trades_count": 105
+    },
+    {
+      "timestamp": "2025-07-14T00:49:00.544722",
+      "signals_count": 96,
+      "news_count": 0,
+      "performance": -0.08741376683881127,
+      "trades_count": 96
+    }
+  ],
+  "signals": [],
+  "outcomes": [],
+  "patterns": [],
+  "signal_performance": [],
+  "last_updated": "2025-07-14T00:49:00.544777"
+}

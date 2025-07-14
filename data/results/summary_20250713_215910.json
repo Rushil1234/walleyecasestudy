@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "start_date": "2023-01-01",
+    "end_date": "2024-02-14",
+    "symbols": [
+      "XOP",
+      "XLE",
+      "USO",
+      "BNO",
+      "SPY"
+    ],
+    "backtest": true,
+    "timestamp": "2025-07-13T21:59:10.373866"
+  },
+  "data_summary": {
+    "equity_symbols": [
+      "XOP",
+      "XLE",
+      "USO",
+      "BNO",
+      "SPY"
+    ],
+    "equity_records": {
+      "XOP": 280,
+      "XLE": 280,
+      "USO": 280,
+      "BNO": 280,
+      "SPY": 280
+    },
+    "news_articles": 170,
+    "news_sources": 15
+  },
+  "performance_summary": {
+    "total_return": 0.0,
+    "sharpe_ratio": 0.0,
+    "max_drawdown": 0.0,
+    "win_rate": 0.0,
+    "total_trades": 0
+  },
+  "risk_summary": {
+    "var_95": 0.0,
+    "cvar_95": 0.0,
+    "volatility": 0.0,
+    "beta": 0
+  },
+  "agent_summary": {
+    "novelty_score": 0.5444000711422659,
+    "confidence": 0.5612292450248234,
+    "recommendations": [
+      "Check data quality and system logs",
+      "Verify news data sources",
+      "Review signal generation parameters"
+    ]
+  }
+}

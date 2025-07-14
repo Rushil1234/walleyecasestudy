@@ -1,0 +1,25 @@
+{
+  "total_return": 0.0,
+  "sharpe_ratio": 0,
+  "max_drawdown": 0.0,
+  "win_rate": 0.0,
+  "total_trades": 1,
+  "benchmark_return": 0,
+  "excess_return": 0,
+  "cumulative_returns": "2023-01-20 00:00:00-05:00    0.0\nFreq: D, dtype: float64",
+  "benchmark_returns": "2023-01-20 00:00:00-05:00    0.018629\nFreq: D, dtype: float64",
+  "daily_returns": "2023-01-20 00:00:00-05:00    0.0\nFreq: D, dtype: float64",
+  "trades": [
+    {
+      "trade_id": 1,
+      "entry_date": "2025-07-13 22:50:56.158878",
+      "entry_price": 133.11398315429688,
+      "shares": 150.24717558648464,
+      "position_type": "SELL",
+      "signal_strength": 0.548774710395341,
+      "signal_quality": 0.7999999999999999,
+      "position_size": 0.2
+    }
+  ],
+  "portfolio_values": "2023-01-20 00:00:00-05:00    100000.0\nFreq: D, dtype: float64"
+}

@@ -1,0 +1,2 @@
+signal_type,signal_strength,signal_quality,sentiment_score,volatility_score,reliability_score,impact_likely,volume_confirmation,price_confirmation,source_diversity,momentum_filter,volume_filter,price_volatility
+BUY,0.47246424630796147,0.7999999999999999,-0.2321365896004196,0.030714565345961637,0.77,0.35,1.428830960269263,1.0,1.0,True,True,0.5

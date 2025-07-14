@@ -1,0 +1,146 @@
+# Data Sources Configuration
+data_sources:
+  # News Sources
+  news_sources:
+    reuters:
+      name: "Reuters"
+      url: "https://www.reuters.com"
+      rss_feeds:
+        - "https://feeds.reuters.com/reuters/businessNews"
+        - "https://feeds.reuters.com/Reuters/worldNews"
+      keywords: ["oil", "energy", "OPEC", "Iran", "Saudi", "pipeline", "drilling"]
+      reliability: 0.95
+      
+    bloomberg:
+      name: "Bloomberg"
+      url: "https://www.bloomberg.com"
+      rss_feeds:
+        - "https://feeds.bloomberg.com/markets/news.rss"
+        - "https://feeds.bloomberg.com/energy/news.rss"
+      keywords: ["oil", "energy", "crude", "futures", "OPEC", "shale"]
+      reliability: 0.90
+      
+    cnbc:
+      name: "CNBC"
+      url: "https://www.cnbc.com"
+      rss_feeds:
+        - "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+        - "https://www.cnbc.com/id/10000664/device/rss/rss.html"
+      keywords: ["oil", "energy", "XOP", "XLE", "crude", "gas"]
+      reliability: 0.85
+      
+    bbc:
+      name: "BBC"
+      url: "https://www.bbc.com"
+      rss_feeds:
+        - "https://feeds.bbci.co.uk/news/business/rss.xml"
+        - "https://feeds.bbci.co.uk/news/world/rss.xml"
+      keywords: ["oil", "energy", "Middle East", "Iran", "Saudi", "OPEC"]
+      reliability: 0.90
+      
+    al_jazeera:
+      name: "Al Jazeera"
+      url: "https://www.aljazeera.com"
+      rss_feeds:
+        - "https://www.aljazeera.com/xml/rss/all.xml"
+      keywords: ["oil", "OPEC", "Iran", "Saudi", "Middle East", "energy"]
+      reliability: 0.80
+      
+    fox:
+      name: "Fox Business"
+      url: "https://www.foxbusiness.com"
+      rss_feeds:
+        - "https://feeds.foxbusiness.com/foxbusiness/most-popular"
+      keywords: ["oil", "energy", "XOP", "crude", "gas", "drilling"]
+      reliability: 0.75
+      
+    ap:
+      name: "Associated Press"
+      url: "https://apnews.com"
+      rss_feeds:
+        - "https://feeds.ap.org/ap/APTopStories"
+        - "https://feeds.ap.org/ap/Business"
+      keywords: ["oil", "energy", "OPEC", "Iran", "Saudi", "pipeline"]
+      reliability: 0.85
+
+  # Financial Data Sources
+  financial_data:
+    yahoo_finance:
+      symbols:
+        - "XOP"    # VanEck Vectors Oil Services ETF
+        - "XLE"    # Energy Select Sector SPDR Fund
+        - "USO"    # United States Oil Fund
+        - "BNO"    # United States Brent Oil Fund
+        - "SPY"    # SPDR S&P 500 ETF
+        - "OIH"    # VanEck Vectors Oil Services ETF
+        - "XES"    # SPDR S&P Oil & Gas Equipment & Services ETF
+        - "IEZ"    # iShares U.S. Oil Equipment & Services ETF
+      
+    fred:
+      series:
+        - "DCOILWTICO"  # WTI Crude Oil Prices
+        - "DCOILBRENTEU" # Brent Crude Oil Prices
+        - "VIXCLS"      # CBOE Volatility Index
+        - "DGS10"       # 10-Year Treasury Rate
+
+  # Geopolitical Keywords
+  keywords:
+    oil_specific:
+      - "oil"
+      - "crude"
+      - "petroleum"
+      - "OPEC"
+      - "OPEC+"
+      - "WTI"
+      - "Brent"
+      - "futures"
+      - "drilling"
+      - "fracking"
+      - "shale"
+      - "pipeline"
+      - "refinery"
+      - "tanker"
+    geopolitical:
+      - "Iran"
+      - "Saudi Arabia"
+      - "Russia"
+      - "Venezuela"
+      - "Middle East"
+      - "Persian Gulf"
+      - "Strait of Hormuz"
+      - "sanctions"
+      - "embargo"
+      - "conflict"
+      - "war"
+      - "attack"
+      - "strike"
+      - "tension"
+      - "diplomacy"
+    economic:
+      - "inflation"
+      - "recession"
+      - "growth"
+      - "demand"
+      - "supply"
+      - "inventory"
+      - "storage"
+      - "production"
+      - "consumption"
+      - "import"
+      - "export"
+      - "trade"
+
+# Data Collection Settings
+collection:
+  # Timing
+  update_frequency: 300        # Seconds between updates
+  max_articles_per_source: 50  # Maximum articles per source per update
+  retention_days: 30           # Days to retain news data
+  
+  # Rate Limiting
+  requests_per_minute: 60      # Rate limit for web scraping
+  delay_between_requests: 1    # Seconds between requests
+  
+  # Storage
+  cache_duration: 3600         # Seconds to cache data
+  compression: true            # Compress stored data 

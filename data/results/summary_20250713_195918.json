@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "start_date": "2023-06-01",
+    "end_date": "2023-08-31",
+    "symbols": [
+      "XOP",
+      "XLE",
+      "USO",
+      "BNO",
+      "SPY"
+    ],
+    "backtest": true,
+    "timestamp": "2025-07-13T19:59:18.578413"
+  },
+  "data_summary": {
+    "equity_symbols": [
+      "XOP",
+      "XLE",
+      "USO",
+      "BNO",
+      "SPY"
+    ],
+    "equity_records": {
+      "XOP": 63,
+      "XLE": 63,
+      "USO": 63,
+      "BNO": 63,
+      "SPY": 63
+    },
+    "news_articles": 10,
+    "news_sources": 6
+  },
+  "performance_summary": {
+    "total_return": 0.0011270514501341676,
+    "sharpe_ratio": 1.9098150763493216,
+    "max_drawdown": -0.0020983914031715164,
+    "win_rate": 0.5,
+    "total_trades": 3
+  },
+  "risk_summary": {
+    "var_95": -0.0009416432084935459,
+    "cvar_95": -0.0010213290797506506,
+    "volatility": 0.015729338595333178,
+    "beta": 0
+  },
+  "agent_summary": {
+    "novelty_score": 0.4006018052070622,
+    "confidence": 0.5420423504833781,
+    "recommendations": [
+      "Consider tightening signal quality thresholds"
+    ]
+  }
+}

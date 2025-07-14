@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "start_date": "2023-01-01",
+    "end_date": "2024-01-16",
+    "symbols": [
+      "XOP",
+      "XLE",
+      "USO",
+      "BNO",
+      "SPY"
+    ],
+    "backtest": true,
+    "timestamp": "2025-07-13T23:47:41.105927"
+  },
+  "data_summary": {
+    "equity_symbols": [
+      "XOP",
+      "XLE",
+      "USO",
+      "BNO",
+      "SPY"
+    ],
+    "equity_records": {
+      "XOP": 259,
+      "XLE": 259,
+      "USO": 259,
+      "BNO": 259,
+      "SPY": 259
+    },
+    "news_articles": 169,
+    "news_sources": 15
+  },
+  "performance_summary": {
+    "total_return": 0.0006443329791881843,
+    "sharpe_ratio": 0.08189350187302237,
+    "max_drawdown": -0.11605969477775085,
+    "win_rate": 0.3411764705882353,
+    "total_trades": 94
+  },
+  "risk_summary": {
+    "var_95": -0.009124230301931362,
+    "cvar_95": -0.0259138167684501,
+    "volatility": 0.15299428686184605,
+    "beta": 0
+  },
+  "agent_summary": {
+    "novelty_score": 0.8230168479794212,
+    "confidence": 0.4546283618482036,
+    "recommendations": [
+      "High volatility environment - consider reducing position sizes and widening stops.",
+      "Low news impact likelihood - consider reducing news-based signal weights."
+    ]
+  }
+}
