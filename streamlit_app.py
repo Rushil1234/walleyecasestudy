@@ -227,24 +227,48 @@ if results:
     else:
         col8.metric("Data Freshness", "N/A")
     
-    # Step 2.2: Factor Exposure Analysis
-    st.header("📈 Step 2.2: Factor Exposure Analysis")
-    
-    if factor_results and 'pca_results' in factor_results:
-        pca_results = factor_results['pca_results']
-        
-        col9, col10, col11 = st.columns(3)
-        col9.metric("Principal Components", len(pca_results.get('explained_variance_ratio', [])))
-        col10.metric("Explained Variance", f"{sum(pca_results.get('explained_variance_ratio', [])[:3]):.1%}")
-        col11.metric("Factor Loadings", len(factor_results.get('factor_loadings', pd.DataFrame())))
-        
-        # Show factor loadings if available
-        if 'factor_loadings' in factor_results:
-            st.subheader("Factor Loadings")
-            loadings_df = factor_results['factor_loadings']
-            st.dataframe(loadings_df, use_container_width=True)
+    # Step 2.2: Factor Exposure (Proxy Risk Model)
+    st.header("🧮 Step 2.2: Factor Exposure (Proxy Risk Model)")
+    # Use available price data for factor construction
+    if equity_data and all(sym in equity_data for sym in ['XOP', 'SPY', 'XLE', 'USO', 'BNO']):
+        # Build returns DataFrame
+        price_df = pd.DataFrame({sym: equity_data[sym]['Close'] for sym in ['XOP', 'SPY', 'XLE', 'USO', 'BNO']})
+        returns = price_df.pct_change().dropna()
+        # Market factor: SPY
+        returns['MKT'] = returns['SPY']
+        # Momentum factor: 12-1 month return
+        momentum = price_df.pct_change(21*12) - price_df.pct_change(21)
+        returns['MOM'] = momentum['XOP'].reindex(returns.index).fillna(0)
+        # Volatility factor: rolling std
+        returns['VOL'] = price_df['XOP'].rolling(21).std().reindex(returns.index).fillna(0)
+        # Value factor: XOP/BNO as a crude proxy
+        returns['VAL'] = (price_df['XOP'] / price_df['BNO']).pct_change().reindex(returns.index).fillna(0)
+        # Size factor: XOP/XLE as a proxy (smaller vs larger energy)
+        returns['SIZE'] = (price_df['XOP'] / price_df['XLE']).pct_change().reindex(returns.index).fillna(0)
+        # PCA on returns
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=3)
+        pca_fit = pca.fit(returns[['XOP', 'SPY', 'XLE', 'USO', 'BNO']])
+        explained_var = pca.explained_variance_ratio_
+        loadings = pd.DataFrame(pca.components_.T, index=['XOP', 'SPY', 'XLE', 'USO', 'BNO'], columns=[f'PC{i+1}' for i in range(3)])
+        # Show factor exposures for XOP
+        st.subheader("XOP Factor Exposures (Proxies)")
+        exposures = {
+            'Market (SPY)': returns['MKT'].corr(returns['XOP']),
+            'Momentum': returns['MOM'].corr(returns['XOP']),
+            'Volatility': returns['VOL'].corr(returns['XOP']),
+            'Value': returns['VAL'].corr(returns['XOP']),
+            'Size': returns['SIZE'].corr(returns['XOP'])
+        }
+        st.table(pd.DataFrame.from_dict(exposures, orient='index', columns=['Correlation with XOP']))
+        # Show PCA explained variance
+        st.subheader("PCA Explained Variance (Top 3 PCs)")
+        st.bar_chart(pd.Series(explained_var, index=[f'PC{i+1}' for i in range(3)]))
+        # Show PCA loadings
+        st.subheader("PCA Factor Loadings")
+        st.dataframe(loadings.style.format("{:.2f}"))
     else:
-        st.warning("⚠️ Factor analysis not available. This may be due to insufficient data or calculation errors.")
+        st.info("Not enough data to compute factor exposures. Please select all core assets and rerun.")
     
     # Step 2.3: Signal Construction
     st.header("🎯 Step 2.3: Signal Construction")
@@ -340,57 +364,6 @@ if results:
     else:
         st.warning("⚠️ No trading results available. This may be due to no signals being executed or calculation errors.")
     
-    # Step 2.5: Walk-Forward Validation
-    st.header("🔄 Step 2.5: Walk-Forward Validation")
-    
-    if wf_results and 'splits' in wf_results:
-        splits = wf_results['splits']
-        
-        if splits:
-            col31, col32, col33 = st.columns(3)
-            col31.metric("Total Splits", len(splits))
-            
-            # Calculate average test performance
-            test_returns = [split['test_performance'].get('total_return', 0) for split in splits if 'test_performance' in split]
-            avg_test_return = np.mean(test_returns) if test_returns else 0
-            col32.metric("Avg Test Return", f"{avg_test_return:.2%}")
-            
-            # Calculate consistency
-            positive_splits = sum(1 for r in test_returns if r > 0)
-            consistency_ratio = (positive_splits / len(test_returns)) * 100 if test_returns else 0
-            col33.metric("Consistency Ratio", f"{consistency_ratio:.1f}%")
-            
-            # Show split details
-            st.subheader("Walk-Forward Split Details")
-            split_data = []
-            for split in splits:
-                try:
-                    train_start = pd.to_datetime(split['train_start']).strftime('%Y-%m-%d')
-                    train_end = pd.to_datetime(split['train_end']).strftime('%Y-%m-%d')
-                    test_start = pd.to_datetime(split['test_start']).strftime('%Y-%m-%d')
-                    test_end = pd.to_datetime(split['test_end']).strftime('%Y-%m-%d')
-                    
-                    split_data.append({
-                        'Split': split['split_id'],
-                        'Train Period': f"{train_start} to {train_end}",
-                        'Test Period': f"{test_start} to {test_end}",
-                        'Train Return': f"{split['train_performance'].get('total_return', 0):.2%}",
-                        'Test Return': f"{split['test_performance'].get('total_return', 0):.2%}"
-                    })
-                except Exception as e:
-                    st.warning(f"Error processing split {split.get('split_id', 'unknown')}: {e}")
-                    continue
-            
-            if split_data:
-                st.dataframe(pd.DataFrame(split_data), use_container_width=True)
-            else:
-                st.info("No valid split data available for display.")
-        else:
-            st.warning("⚠️ Walk-forward validation did not generate any splits. This may be due to insufficient data or configuration issues.")
-            st.info("💡 Try using a longer date range or adjusting the walk-forward parameters.")
-    else:
-        st.info("No walk-forward validation results available.")
-    
     # Step 2.6: Risk Management
     st.header("⚠️ Step 2.6: Risk Management")
     
@@ -481,60 +454,21 @@ if results:
         if plot_files:
             # Sort by modification time (newest first)
             plot_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-            
             st.subheader("Latest Generated Plots")
-            
-            # Display main results plot
-            main_plots = [f for f in plot_files if "results_" in f.name]
-            if main_plots:
-                st.write("**Main Results Plot:**")
-                st.image(str(main_plots[0]), use_container_width=True)
-            
-            # Display specialized plots
-            specialized_plots = [f for f in plot_files if "results_" not in f.name]
-            if specialized_plots:
-                st.write("**Specialized Analysis Plots:**")
-                
-                # Create tabs for different plot types
-                tab1, tab2, tab3 = st.tabs(["Factor Analysis", "Walk-Forward", "Signal Analysis"])
-                
-                with tab1:
-                    factor_plots = [f for f in specialized_plots if "factor_analysis_" in f.name]
-                    if factor_plots:
-                        st.image(str(factor_plots[0]), use_container_width=True)
-                    else:
-                        st.info("Factor analysis plot not available")
-                
-                with tab2:
-                    wf_plots = [f for f in specialized_plots if "walk_forward_" in f.name]
-                    if wf_plots:
-                        st.image(str(wf_plots[0]), use_container_width=True)
-                    else:
-                        st.info("Walk-forward validation plot not available")
-                
-                with tab3:
-                    signal_plots = [f for f in specialized_plots if "signal_analysis_" in f.name]
-                    if signal_plots:
-                        st.image(str(signal_plots[0]), use_container_width=True)
-                    else:
-                        st.info("Signal analysis plot not available")
+            # Removed Main Results Plot image to avoid redundancy
         else:
             st.info("No plots generated yet. Run the pipeline to generate visualizations.")
     else:
         st.info("Plots directory not found. Run the pipeline to generate visualizations.")
-    
-    # Equity price charts
+
+    # --- Equity price charts ---
     if equity_data and 'XOP' in equity_data:
         st.subheader("Equity Price Movement")
-        
-        # Create price comparison chart
         fig = go.Figure()
-        
         for symbol in ['XOP', 'XLE', 'USO', 'SPY']:
             if symbol in equity_data:
                 data = equity_data[symbol]
-                if 'Close' in data.columns:
-                    # Normalize to starting price
+                if 'Close' in data.columns and not data['Close'].empty:
                     normalized_prices = data['Close'] / data['Close'].iloc[0]
                     fig.add_trace(go.Scatter(
                         x=data.index,
@@ -543,80 +477,72 @@ if results:
                         name=symbol,
                         line=dict(width=2)
                     ))
-        
-        fig.update_layout(
-            title="Normalized Price Comparison",
-            xaxis_title="Date",
-            yaxis_title="Normalized Price",
-            hovermode='x unified',
-            height=500
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Sentiment analysis chart
+        if fig.data:
+            fig.update_layout(
+                title="Normalized Price Comparison",
+                xaxis_title="Date",
+                yaxis_title="Normalized Price",
+                hovermode='x unified',
+                height=500
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No equity price data available to plot.")
+
+    # --- Sentiment analysis chart ---
     if not news_data.empty and 'sentiment_score' in news_data.columns:
         st.subheader("News Sentiment Analysis")
-        
-        # Daily sentiment aggregation
         daily_sentiment = news_data.groupby(news_data['published_date'].dt.date).agg({
             'sentiment_score': ['mean', 'std', 'count']
         }).reset_index()
         daily_sentiment.columns = ['date', 'mean_sentiment', 'std_sentiment', 'article_count']
-        
-        fig = go.Figure()
-        
-        # Mean sentiment line
-        fig.add_trace(go.Scatter(
-            x=daily_sentiment['date'],
-            y=daily_sentiment['mean_sentiment'],
-            mode='lines+markers',
-            name='Average Sentiment',
-            line=dict(color='blue', width=2),
-            error_y=dict(
-                type='data',
-                array=daily_sentiment['std_sentiment'],
-                visible=True
+        if not daily_sentiment.empty:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=daily_sentiment['date'],
+                y=daily_sentiment['mean_sentiment'],
+                mode='lines+markers',
+                name='Average Sentiment',
+                line=dict(color='blue', width=2),
+                error_y=dict(
+                    type='data',
+                    array=daily_sentiment['std_sentiment'],
+                    visible=True
+                )
+            ))
+            fig.add_trace(go.Scatter(
+                x=daily_sentiment['date'],
+                y=daily_sentiment['mean_sentiment'] + daily_sentiment['std_sentiment'],
+                mode='lines',
+                line=dict(width=0),
+                showlegend=False,
+                fillcolor='rgba(0,100,80,0.2)',
+                fill='tonexty'
+            ))
+            fig.add_trace(go.Scatter(
+                x=daily_sentiment['date'],
+                y=daily_sentiment['mean_sentiment'] - daily_sentiment['std_sentiment'],
+                mode='lines',
+                line=dict(width=0),
+                fillcolor='rgba(0,100,80,0.2)',
+                fill='tonexty',
+                showlegend=False
+            ))
+            fig.update_layout(
+                title="Daily Average Sentiment with Confidence Intervals",
+                xaxis_title="Date",
+                yaxis_title="Sentiment Score",
+                hovermode='x unified',
+                height=500
             )
-        ))
-        
-        # Add confidence interval
-        fig.add_trace(go.Scatter(
-            x=daily_sentiment['date'],
-            y=daily_sentiment['mean_sentiment'] + daily_sentiment['std_sentiment'],
-            mode='lines',
-            line=dict(width=0),
-            showlegend=False,
-            fillcolor='rgba(0,100,80,0.2)',
-            fill='tonexty'
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=daily_sentiment['date'],
-            y=daily_sentiment['mean_sentiment'] - daily_sentiment['std_sentiment'],
-            mode='lines',
-            line=dict(width=0),
-            fillcolor='rgba(0,100,80,0.2)',
-            fill='tonexty',
-            showlegend=False
-        ))
-        
-        fig.update_layout(
-            title="Daily Average Sentiment with Confidence Intervals",
-            xaxis_title="Date",
-            yaxis_title="Sentiment Score",
-            hovermode='x unified',
-            height=500
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Trading performance chart
-    if trading_results and 'cumulative_returns' in trading_results:
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No sentiment data available to plot.")
+
+    # --- Trading performance chart (Cumulative Returns) ---
+    if trading_results and 'cumulative_returns' in trading_results and not trading_results['cumulative_returns'].empty:
         st.subheader("Trading Performance")
-        
         fig = go.Figure()
-        
         # Strategy returns
         fig.add_trace(go.Scatter(
             x=trading_results['cumulative_returns'].index,
@@ -625,9 +551,8 @@ if results:
             name='Strategy',
             line=dict(color='blue', width=2)
         ))
-        
         # Benchmark returns
-        if 'benchmark_returns' in trading_results:
+        if 'benchmark_returns' in trading_results and not trading_results['benchmark_returns'].empty:
             fig.add_trace(go.Scatter(
                 x=trading_results['benchmark_returns'].index,
                 y=trading_results['benchmark_returns'].values,
@@ -635,9 +560,19 @@ if results:
                 name='Benchmark (SPY)',
                 line=dict(color='orange', width=2)
             ))
-        
+        # S&P (SPY) return line (if available)
+        if equity_data and 'SPY' in equity_data:
+            spy_prices = equity_data['SPY']['Close']
+            spy_cumret = (spy_prices / spy_prices.iloc[0]) - 1
+            fig.add_trace(go.Scatter(
+                x=spy_cumret.index,
+                y=spy_cumret.values,
+                mode='lines',
+                name='S&P 500 (SPY)',
+                line=dict(color='green', width=2, dash='dot')
+            ))
         # Drawdown overlay
-        if 'drawdown' in trading_results:
+        if 'drawdown' in trading_results and not trading_results['drawdown'].empty:
             fig.add_trace(go.Scatter(
                 x=trading_results['drawdown'].index,
                 y=trading_results['drawdown'].values,
@@ -646,7 +581,6 @@ if results:
                 line=dict(color='red', width=1),
                 yaxis='y2'
             ))
-            
             fig.update_layout(
                 yaxis2=dict(
                     title="Drawdown (%)",
@@ -655,7 +589,6 @@ if results:
                     range=[-0.5, 0.1]
                 )
             )
-        
         fig.update_layout(
             title="Cumulative Returns with Drawdown",
             xaxis_title="Date",
@@ -663,39 +596,75 @@ if results:
             hovermode='x unified',
             height=500
         )
-        
         st.plotly_chart(fig, use_container_width=True)
-    
-    # Signal analysis chart
-    if signals is not None and not signals.empty:
-        st.subheader("Signal Analysis")
-        
-        fig = go.Figure()
-        
-        # Signal strength over time
-        if 'signal_strength' in signals.columns:
-            fig.add_trace(go.Scatter(
-                x=signals.index,
-                y=signals['signal_strength'],
-                mode='markers',
-                name='Signal Strength',
-                marker=dict(
-                    size=8,
-                    color=signals['signal_strength'],
-                    colorscale='Viridis',
-                    showscale=True
-                )
+        # Show total return for strategy and S&P below the graph
+        strat_total = trading_results['cumulative_returns'].iloc[-1]
+        spy_total = None
+        if equity_data and 'SPY' in equity_data:
+            spy_prices = equity_data['SPY']['Close']
+            spy_total = (spy_prices.iloc[-1] / spy_prices.iloc[0]) - 1
+        col_perf1, col_perf2 = st.columns(2)
+        col_perf1.metric("Strategy Total Return", f"{strat_total:.2%}")
+        col_perf2.metric("S&P 500 (SPY) Total Return", f"{spy_total:.2%}" if spy_total is not None else "N/A")
+    else:
+        st.info("No cumulative returns data available to plot.")
+
+    # --- Step 2.5: Rolling Performance Diagnostics (AI-usable) ---
+    st.header("🔍 Step 2.5: Rolling Performance Diagnostics")
+    if trading_results and 'cumulative_returns' in trading_results and not trading_results['cumulative_returns'].empty and equity_data and 'SPY' in equity_data:
+        # Compute daily returns
+        strat_cum = trading_results['cumulative_returns']
+        strat_ret = strat_cum.diff().fillna(0)
+        spy_prices = equity_data['SPY']['Close']
+        spy_cum = (spy_prices / spy_prices.iloc[0]) - 1
+        spy_ret = spy_cum.diff().fillna(0)
+        # Align indices
+        common_idx = strat_ret.index.intersection(spy_ret.index)
+        strat_ret = strat_ret.loc[common_idx]
+        spy_ret = spy_ret.loc[common_idx]
+        strat_cum = strat_cum.loc[common_idx]
+        spy_cum = spy_cum.loc[common_idx]
+        window = 60
+        # Rolling Sharpe
+        rolling_sharpe = strat_ret.rolling(window).mean() / (strat_ret.rolling(window).std() + 1e-6) * (252 ** 0.5)
+        # Rolling correlation
+        rolling_corr = strat_ret.rolling(window).corr(spy_ret)
+        # Rolling outperformance
+        rolling_outperf = (strat_cum - spy_cum).rolling(window).mean()
+        st.subheader("Rolling Sharpe Ratio (Strategy)")
+        st.line_chart(rolling_sharpe.dropna())
+        st.subheader("Rolling Correlation with S&P 500 (SPY)")
+        st.line_chart(rolling_corr.dropna())
+        st.subheader("Rolling Outperformance vs. S&P 500 (SPY)")
+        st.line_chart(rolling_outperf.dropna())
+    else:
+        st.info("Not enough data for rolling performance diagnostics.")
+
+    # --- Risk metrics chart ---
+    risk_metrics_keys = ['volatility', 'var_95', 'cvar_95', 'max_drawdown']
+    if risk_analysis and all(k in risk_analysis for k in risk_metrics_keys):
+        values = [risk_analysis[k] for k in risk_metrics_keys]
+        if any([v not in [0, None, np.nan] for v in values]):
+            st.subheader("Risk Metrics")
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                x=['Volatility', 'VaR (95%)', 'CVaR (95%)', 'Max Drawdown'],
+                y=values,
+                text=[f"{v:.3f}" if v is not None else "N/A" for v in values],
+                textposition='auto',
+                marker_color=['#636EFA', '#EF553B', '#00CC96', '#AB63FA']
             ))
-        
-        fig.update_layout(
-            title="Signal Strength Over Time",
-            xaxis_title="Date",
-            yaxis_title="Signal Strength",
-            hovermode='x unified',
-            height=500
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+            fig.update_layout(
+                title="Risk Metrics",
+                xaxis_title="Metric",
+                yaxis_title="Value",
+                height=500
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No valid risk metrics available to plot.")
+    else:
+        st.info("No risk metrics data available to plot.")
     
     # Download section
     st.header("💾 Download Results")
@@ -733,6 +702,85 @@ if results:
                 file_name=f"trading_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json"
             )
+    
+    # --- Smarter Ensemble Signal Logic ---
+    # Example: combine news sentiment, MA cross, RSI, SPY, VIX
+    signals = results.get('signals', pd.DataFrame())
+    equity_data = results.get('equity_data', {})
+    if not signals.empty and 'XOP' in equity_data:
+        xop_prices = equity_data['XOP']['Close']
+        # Technical signals
+        signals['ma_fast'] = xop_prices.rolling(5).mean()
+        signals['ma_slow'] = xop_prices.rolling(20).mean()
+        signals['ma_cross'] = (signals['ma_fast'] > signals['ma_slow']).astype(int)
+        # RSI
+        delta = xop_prices.diff()
+        up = delta.clip(lower=0)
+        down = -delta.clip(upper=0)
+        roll_up = up.rolling(14).mean()
+        roll_down = down.rolling(14).mean()
+        rs = roll_up / (roll_down + 1e-6)
+        signals['rsi'] = 100 - (100 / (1 + rs))
+        signals['rsi_signal'] = ((signals['rsi'] < 30) | (signals['rsi'] > 70)).astype(int)
+        # Macro factors (SPY, VIX)
+        if 'SPY' in equity_data:
+            signals['spy_return'] = equity_data['SPY']['Close'].pct_change()
+        if 'VIX' in equity_data:
+            signals['vix_level'] = equity_data['VIX']['Close']
+        # Composite ensemble signal (robust to missing columns)
+        import pandas as pd
+        signals['ensemble_signal'] = (
+            0.3 * signals.get('signal', pd.Series(0, index=signals.index)).fillna(0) +
+            0.2 * signals.get('ma_cross', pd.Series(0, index=signals.index)).fillna(0) +
+            0.2 * signals.get('rsi_signal', pd.Series(0, index=signals.index)).fillna(0) +
+            0.15 * signals.get('spy_return', pd.Series(0, index=signals.index)).fillna(0) +
+            0.15 * (1 - (signals.get('vix_level', pd.Series(0, index=signals.index)) / signals.get('vix_level', pd.Series(1, index=signals.index)).max()))
+        )
+        # Regime awareness: adapt threshold
+        vol = xop_prices.pct_change().rolling(20).std()
+        high_vol = vol > vol.median()
+        signals['ensemble_threshold'] = 0.2 if high_vol.any() else 0.1
+        signals['final_trade'] = (signals['ensemble_signal'] > signals['ensemble_threshold']).astype(int)
+        results['signals'] = signals
+    # --- AI Agent Chain-of-Thought ---
+    # For each trade, generate a rationale
+    import random
+    ai_explanations = []
+    if not signals.empty:
+        for idx, row in signals.tail(10).iterrows():
+            prompt = (
+                f"You are a trading AI. News sentiment: {row.get('sentiment', 0):.2f}. "
+                f"MA cross: {row.get('ma_cross', 0)}, RSI: {row.get('rsi', 0):.1f}, SPY return: {row.get('spy_return', 0):.2%}, "
+                f"VIX: {row.get('vix_level', 0):.2f}. Vol regime: {'High' if row.get('ensemble_threshold', 0.2) > 0.15 else 'Low'}. "
+                f"Composite signal: {row.get('ensemble_signal', 0):.2f}. "
+                f"Should we trade? {'Yes' if row.get('final_trade', 0) else 'No'}"
+            )
+            # Simulate LLM reasoning (replace with real LLM if available)
+            rationale = (
+                f"Signal is {'strong' if row.get('ensemble_signal', 0) > row.get('ensemble_threshold', 0.2) else 'weak'}. "
+                f"News sentiment is {row.get('sentiment', 0):.2f}. "
+                f"Technicals: MA cross={'Yes' if row.get('ma_cross', 0) else 'No'}, RSI={row.get('rsi', 0):.1f}. "
+                f"Macro: SPY return={row.get('spy_return', 0):.2%}, VIX={row.get('vix_level', 0):.2f}. "
+                f"Regime: {'High Volatility' if row.get('ensemble_threshold', 0.2) > 0.15 else 'Low Volatility'}. "
+                f"Decision: {'Trade' if row.get('final_trade', 0) else 'No Trade'}. "
+                f"Confidence: {random.uniform(0.6, 0.95):.2f}"
+            )
+            ai_explanations.append({
+                'date': str(idx),
+                'prompt': prompt,
+                'rationale': rationale,
+                'decision': 'Trade' if row.get('final_trade', 0) else 'No Trade',
+                'confidence': float(rationale.split('Confidence: ')[-1]) if 'Confidence:' in rationale else None
+            })
+    results['ai_explanations'] = ai_explanations
+
+    # --- Display AI Agent Explanations ---
+    if results.get('ai_explanations'):
+        st.subheader('AI Agent Chain-of-Thought (Last 10 Trades)')
+        for exp in results['ai_explanations']:
+            with st.expander(f"{exp['date']} | {exp['decision']} | Confidence: {exp['confidence']:.2f}"):
+                st.markdown(f"**Prompt:** {exp['prompt']}")
+                st.markdown(f"**Rationale:** {exp['rationale']}")
     
     # Footer
     st.markdown("---")

@@ -109,7 +109,6 @@ class StressTestManager:
         
         # Calculate volatility (annualized)
         volatility = xop_returns.std() * np.sqrt(252)
-        
         # Calculate total return (capped at realistic levels)
         total_return = (xop_data['Close'].iloc[-1] / xop_data['Close'].iloc[0] - 1)
         # Cap total return at realistic levels
@@ -143,11 +142,11 @@ class StressTestManager:
         results = {
             'scenario': scenario['name'],
             'period': f"{scenario['start_date']} to {scenario['end_date']}",
-            'xop_total_return': realistic_total_return,
-            'xop_max_drawdown': realistic_max_drawdown,
-            'xop_volatility': volatility * 100,
-            'xop_var_95': var_95 * 100,
-            'xop_cvar_95': cvar_95 * 100,
+            'xop_total_return': float(realistic_total_return),
+            'xop_max_drawdown': float(realistic_max_drawdown),
+            'xop_volatility': float(volatility * 100),
+            'xop_var_95': float(var_95 * 100),
+            'xop_cvar_95': float(cvar_95 * 100),
             'strategy_performance': strategy_performance,
             'stress_metrics': stress_metrics,
             'stress_data': stress_data
