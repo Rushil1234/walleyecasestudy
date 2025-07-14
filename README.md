@@ -4,8 +4,8 @@
 
 This system implements a contrarian trading strategy for oil-related stocks (XOP ETF) that filters out noise from geopolitical headlines and focuses on genuine market-moving events. The system uses advanced NLP, sentiment analysis, and AI agents to identify high-quality trading signals while avoiding false breakouts from panic-driven rallies.
 
-[https://kakkadwalleyecasestudy.streamlit.app/
-](url)
+[[https://kakkadwalleyecasestudy.streamlit.app/
+](url)](https://kakkadwalleyecasestudy.streamlit.app/)
 
 ## Key Features
 
