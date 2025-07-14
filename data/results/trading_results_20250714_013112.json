@@ -1,0 +1,21 @@
+{
+  "total_return": 0.0,
+  "sharpe_ratio": 0.0,
+  "max_drawdown": 0.0,
+  "win_rate": 0.0,
+  "total_trades": 0,
+  "benchmark_return": 0.0,
+  "excess_return": 0.0,
+  "volatility": 0.0,
+  "var_95": 0.0,
+  "cvar_95": 0.0,
+  "skewness": 0.0,
+  "kurtosis": 0.0,
+  "calmar_ratio": 0.0,
+  "cumulative_returns": "Series([], dtype: object)",
+  "benchmark_returns": "Series([], dtype: object)",
+  "daily_returns": "Series([], dtype: object)",
+  "returns": "Series([], dtype: object)",
+  "trades": [],
+  "portfolio_values": "Series([], dtype: object)"
+}

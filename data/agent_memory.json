@@ -76,11 +76,46 @@
       "news_count": 0,
       "performance": -0.08741376683881127,
       "trades_count": 96
+    },
+    {
+      "timestamp": "2025-07-14T01:27:50.548121",
+      "signals_count": 97,
+      "news_count": 0,
+      "performance": -0.0017938227308512433,
+      "trades_count": 97
+    },
+    {
+      "timestamp": "2025-07-14T01:31:12.466963",
+      "signals_count": 0,
+      "news_count": 0,
+      "performance": 0.0,
+      "trades_count": 0
+    },
+    {
+      "timestamp": "2025-07-14T01:31:41.043730",
+      "signals_count": 0,
+      "news_count": 0,
+      "performance": 0.0,
+      "trades_count": 0
+    },
+    {
+      "timestamp": "2025-07-14T01:35:10.900673",
+      "signals_count": 0,
+      "news_count": 0,
+      "performance": 0.0,
+      "trades_count": 0
+    },
+    {
+      "timestamp": "2025-07-14T01:35:36.207630",
+      "signals_count": 97,
+      "news_count": 0,
+      "performance": -0.18512566996921087,
+      "trades_count": 82
     }
   ],
   "signals": [],
   "outcomes": [],
   "patterns": [],
   "signal_performance": [],
-  "last_updated": "2025-07-14T00:49:00.544777"
+  "last_updated": "2025-07-14T01:35:36.207676"
 }

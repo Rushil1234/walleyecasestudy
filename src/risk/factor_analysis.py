@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 import yfinance as yf
 from typing import Dict, List, Tuple, Optional
 import logging
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -32,40 +33,58 @@ class FactorExposureAnalyzer:
         self.scaler = StandardScaler()
         self.factor_loadings = None
         self.explained_variance = None
-        
+    # 1️⃣  fetch_factor_data  – one combined download + softer NA rule
     def fetch_factor_data(self, start_date: str, end_date: str) -> pd.DataFrame:
         """
         Fetch daily returns for factor analysis.
-        
         Args:
             start_date: Start date for data
             end_date: End date for data
-            
         Returns:
             DataFrame with daily returns
         """
         logger.info(f"Fetching factor data for {self.symbols}")
+        # Standardize date formats
+        start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
+        end_date = pd.to_datetime(end_date).strftime('%Y-%m-%d')
+        # Clip end_date to today
+        today = datetime.date.today().strftime('%Y-%m-%d')
+        if end_date > today:
+            logger.warning(f"End date {end_date} is in the future. Clipping to today: {today}")
+            end_date = today
         
         returns_data = {}
+        missing_symbols = []
         for symbol in self.symbols:
             try:
                 ticker = yf.Ticker(symbol)
                 data = ticker.history(start=start_date, end=end_date)
-                # Ensure index is datetime
                 data.index = pd.to_datetime(data.index)
-                returns_data[symbol] = data['Close'].pct_change().dropna()
-                logger.info(f"Fetched {len(returns_data[symbol])} days for {symbol}")
+                if data.empty:
+                    logger.warning(f"No data for symbol {symbol} in range {start_date} to {end_date}")
+                    missing_symbols.append(symbol)
+                    continue
+                returns_data[symbol] = data['Close'].pct_change()
             except Exception as e:
-                logger.error(f"Error fetching data for {symbol}: {e}")
-                
-        # Align all series
+                logger.warning(f"Failed to fetch data for {symbol}: {e}")
+                missing_symbols.append(symbol)
+                continue
+        if missing_symbols:
+            logger.warning(f"Missing data for symbols: {missing_symbols}")
+        if not returns_data:
+            logger.error("No data could be fetched for any symbols. Aborting analysis.")
+            return pd.DataFrame()
         returns_df = pd.DataFrame(returns_data)
-        returns_df = returns_df.dropna()
-        # Ensure index is datetime
-        returns_df.index = pd.to_datetime(returns_df.index)
-        
-        logger.info(f"Final dataset: {returns_df.shape}")
+        # Drop columns with all NaN
+        returns_df = returns_df.dropna(axis=1, how='all')
+        # Drop rows with all NaN
+        returns_df = returns_df.dropna(axis=0, how='all')
+        # Check for sufficient data
+        if len(returns_df) < 30:
+            logger.error(f"Insufficient data after cleaning: only {len(returns_df)} rows. Need at least 30 for rolling calculations.")
+            return pd.DataFrame()
         return returns_df
+
     
     def compute_rolling_covariance(self, returns_df: pd.DataFrame, 
                                  window: int = 60) -> pd.DataFrame:
@@ -144,10 +163,12 @@ class FactorExposureAnalyzer:
         pca_components = self.pca.fit_transform(returns_scaled)
         
         # Store results
+        # pca.components_ has shape (n_components, n_features)
+        # We want loadings with shape (n_features, n_components)
         self.factor_loadings = pd.DataFrame(
-            self.pca.components_.T,
-            index=returns_clean.columns,
-            columns=[f'PC{i+1}' for i in range(n_components)]
+            self.pca.components_.T,  # Transpose to get (n_features, n_components)
+            index=returns_clean.columns,  # Feature names as rows
+            columns=[f'PC{i+1}' for i in range(n_components)]  # Component names as columns
         )
         
         self.explained_variance = pd.Series(
@@ -345,10 +366,16 @@ class FactorExposureAnalyzer:
             DataFrame with factor correlations
         """
         # Get PCA components
+        # Ensure we have the correct symbols that match the data
+        if hasattr(self, 'factor_loadings') and not self.factor_loadings.empty:
+            symbols = self.factor_loadings.index.tolist()
+        else:
+            symbols = self.symbols
+            
         components_df = pd.DataFrame(
             self.pca.components_.T,
             columns=[f'PC{i+1}' for i in range(len(self.pca.components_))],
-            index=self.symbols
+            index=symbols
         )
         
         # Calculate correlations
@@ -428,7 +455,9 @@ class FactorExposureAnalyzer:
             cov_matrix = window_returns.cov()
             
             # Compute portfolio weights (assuming equal weight for simplicity)
-            weights = np.array([1/len(self.symbols)] * len(self.symbols))
+            # Use actual columns from returns data, not self.symbols
+            n_assets = len(window_returns.columns)
+            weights = np.array([1/n_assets] * n_assets)
             
             # Compute portfolio volatility
             portfolio_vol = np.sqrt(weights.T @ cov_matrix @ weights)
