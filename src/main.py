@@ -86,20 +86,13 @@ class SmartSignalFilter:
         sentiment_threshold: float = 0.2,
         volatility_threshold: float = 0.03,
         reliability_threshold: float = 0.4,
-        news_sources: Optional[List[str]] = None
+        news_sources: Optional[List[str]] = None,
+        spike_threshold: float = 2.0,
+        spike_etfs: Optional[list] = None
     ) -> Dict:
         """
         Run the complete Smart Signal Filtering pipeline.
-        
-        Args:
-            start_date: Start date for analysis
-            end_date: End date for analysis
-            symbols: List of symbols to analyze (default: XOP and related)
-            backtest: Whether to run backtest
-            save_results: Whether to save results to files
-            
-        Returns:
-            Dictionary containing all results
+        (Now supports volume spike features via spike_threshold and spike_etfs)
         """
         logger.info("Starting Smart Signal Filtering pipeline")
         
@@ -175,7 +168,9 @@ class SmartSignalFilter:
             
             # Step 7: Factor exposure analysis
             logger.info("Step 7: Factor exposure analysis")
-            factor_results = self.factor_analyzer.run_complete_analysis(start_date, end_date)
+            factor_results = self.factor_analyzer.run_complete_analysis(
+                start_date, end_date, spike_threshold=spike_threshold, spike_etfs=spike_etfs
+            )
             
             # Step 8: Walk-forward validation
             logger.info("Step 8: Walk-forward validation")
@@ -253,6 +248,12 @@ class SmartSignalFilter:
                     'timestamp': datetime.now().isoformat()
                 }
             }
+            
+            # If volume spike features are present, add to results
+            if 'volume_spike_features' in factor_results:
+                self.results['volume_spike_features'] = factor_results['volume_spike_features']
+            if 'volume_data' in factor_results:
+                self.results['volume_data'] = factor_results['volume_data']
             
             # Save results if requested
             if save_results:

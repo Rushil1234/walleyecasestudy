@@ -12,6 +12,11 @@ import yfinance as yf
 from typing import Dict, List, Tuple, Optional
 import logging
 import datetime
+try:
+    import pandas_datareader.data as web
+    FRED_AVAILABLE = True
+except ImportError:
+    FRED_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -34,26 +39,22 @@ class FactorExposureAnalyzer:
         self.factor_loadings = None
         self.explained_variance = None
     # 1️⃣  fetch_factor_data  – one combined download + softer NA rule
-    def fetch_factor_data(self, start_date: str, end_date: str) -> pd.DataFrame:
+    def fetch_factor_data(self, start_date: str, end_date: str):
         """
-        Fetch daily returns for factor analysis.
-        Args:
-            start_date: Start date for data
-            end_date: End date for data
+        Fetch daily returns and volume for factor analysis.
         Returns:
-            DataFrame with daily returns
+            returns_df: DataFrame with daily returns
+            volume_df: DataFrame with daily volume
         """
         logger.info(f"Fetching factor data for {self.symbols}")
-        # Standardize date formats
         start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
         end_date = pd.to_datetime(end_date).strftime('%Y-%m-%d')
-        # Clip end_date to today
         today = datetime.date.today().strftime('%Y-%m-%d')
         if end_date > today:
             logger.warning(f"End date {end_date} is in the future. Clipping to today: {today}")
             end_date = today
-        
         returns_data = {}
+        volume_data = {}
         missing_symbols = []
         for symbol in self.symbols:
             try:
@@ -65,6 +66,7 @@ class FactorExposureAnalyzer:
                     missing_symbols.append(symbol)
                     continue
                 returns_data[symbol] = data['Close'].pct_change()
+                volume_data[symbol] = data['Volume']
             except Exception as e:
                 logger.warning(f"Failed to fetch data for {symbol}: {e}")
                 missing_symbols.append(symbol)
@@ -73,17 +75,13 @@ class FactorExposureAnalyzer:
             logger.warning(f"Missing data for symbols: {missing_symbols}")
         if not returns_data:
             logger.error("No data could be fetched for any symbols. Aborting analysis.")
-            return pd.DataFrame()
-        returns_df = pd.DataFrame(returns_data)
-        # Drop columns with all NaN
-        returns_df = returns_df.dropna(axis=1, how='all')
-        # Drop rows with all NaN
-        returns_df = returns_df.dropna(axis=0, how='all')
-        # Check for sufficient data
+            return pd.DataFrame(), pd.DataFrame()
+        returns_df = pd.DataFrame(returns_data).dropna(axis=1, how='all').dropna(axis=0, how='all')
+        volume_df = pd.DataFrame(volume_data).dropna(axis=1, how='all').dropna(axis=0, how='all')
         if len(returns_df) < 30:
             logger.error(f"Insufficient data after cleaning: only {len(returns_df)} rows. Need at least 30 for rolling calculations.")
-            return pd.DataFrame()
-        return returns_df
+            return pd.DataFrame(), pd.DataFrame()
+        return returns_df, volume_df
 
     
     def compute_rolling_covariance(self, returns_df: pd.DataFrame, 
@@ -515,48 +513,74 @@ class FactorExposureAnalyzer:
         logger.info(f"Regime distribution: {regimes.value_counts().to_dict()}")
         return regimes
     
-    def run_complete_analysis(self, start_date: str, end_date: str) -> Dict:
+    def compute_volume_spike_features(self, volume_df, threshold=2.0, etfs=None):
         """
-        Run complete factor exposure analysis.
-        
+        Compute binary volume spike features for selected ETFs.
         Args:
-            start_date: Start date for analysis
-            end_date: End date for analysis
-            
+            volume_df: DataFrame with daily volume
+            threshold: Spike threshold (default 2.0)
+            etfs: List of ETF symbols to compute spikes for
         Returns:
-            Dictionary with all analysis results
+            DataFrame with binary spike features (1=spike, 0=no spike)
+        """
+        if etfs is None:
+            etfs = ['XLE', 'USO', 'BNO']
+        spikes = pd.DataFrame(index=volume_df.index)
+        for etf in etfs:
+            if etf in volume_df:
+                avg20 = volume_df[etf].rolling(20).mean()
+                spikes[etf + '_spike'] = (volume_df[etf] > threshold * avg20).astype(int)
+        return spikes
+
+    def run_complete_analysis(self, start_date: str, end_date: str, spike_threshold=2.0, spike_etfs=None) -> Dict:
+        """
+        Run complete factor exposure analysis, including volume spike features and macro data.
         """
         logger.info("Running complete factor exposure analysis")
-        
         # Fetch data
-        returns_df = self.fetch_factor_data(start_date, end_date)
-        # Ensure index is datetime
+        returns_df, volume_df = self.fetch_factor_data(start_date, end_date)
         returns_df.index = pd.to_datetime(returns_df.index)
-        
+        volume_df.index = pd.to_datetime(volume_df.index)
+        # Fetch macro data (FRED: CPI, USD, rates)
+        macro_data = {}
+        if FRED_AVAILABLE:
+            try:
+                # CPI (Consumer Price Index)
+                cpi = web.DataReader('CPIAUCSL', 'fred', returns_df.index[0], returns_df.index[-1])
+                macro_data['cpi'] = cpi
+                # USD Index (DXY)
+                dxy = web.DataReader('DTWEXBGS', 'fred', returns_df.index[0], returns_df.index[-1])
+                macro_data['usd'] = dxy
+                # Fed Funds Rate
+                rates = web.DataReader('FEDFUNDS', 'fred', returns_df.index[0], returns_df.index[-1])
+                macro_data['rates'] = rates
+            except Exception as e:
+                logger.warning(f"Could not fetch FRED macro data: {e}")
+        else:
+            logger.warning("pandas_datareader not available, skipping FRED macro data.")
         # Perform PCA
         pca_results = self.perform_pca_analysis(returns_df)
-        
         # Compute factor exposures
         factor_exposures = self.compute_factor_exposures(returns_df)
-        
         # Compute MCVR
         mcvr_results = self.compute_mcvr(returns_df, factor_exposures)
-        
         # Identify market regimes
         market_regimes = self.identify_market_regimes(returns_df)
-        
         # Compute rolling covariance
         rolling_cov = self.compute_rolling_covariance(returns_df)
-        
+        # Compute volume spike features
+        spike_features = self.compute_volume_spike_features(volume_df, threshold=spike_threshold, etfs=spike_etfs)
         results = {
             'returns_data': returns_df,
+            'volume_data': volume_df,
             'pca_results': pca_results,
             'factor_exposures': factor_exposures,
             'mcvr_results': mcvr_results,
             'market_regimes': market_regimes,
-            'rolling_covariance': rolling_cov
+            'rolling_covariance': rolling_cov,
+            'volume_spike_features': spike_features,
+            'macro_data': macro_data
         }
-        
         logger.info("Factor exposure analysis complete")
         return results
 
