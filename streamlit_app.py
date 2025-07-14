@@ -13,10 +13,10 @@ from pathlib import Path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from src.main import SmartSignalFilter
 
-st.set_page_config(page_title="Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities", layout="wide")
+st.set_page_config(page_title="Rushil Kakkad Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities", layout="wide")
 
 # Main header with Walleye branding
-st.title("Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities ($XOP)")
+st.title("Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities (XOP)")
 st.markdown("""
 **Research Goal**: Filter Middle East geopolitical news using LLMs + Risk Models to generate alpha signals for XOP trading.
 
