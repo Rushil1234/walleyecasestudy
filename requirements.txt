@@ -19,6 +19,7 @@ spacy==3.7.5
 tokenizers
 shap==0.45.1
 joblib
+ollama
 
 # NLP & Sentiment Analysis
 nltk
