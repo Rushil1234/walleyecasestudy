@@ -23,6 +23,7 @@ joblib
 nltk
 textblob
 vaderSentiment
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz#egg=en_core_web_sm
 
 # Data Visualization
 matplotlib
@@ -45,11 +46,6 @@ lxml[html_clean]
 # Excel Support
 openpyxl
 xlrd
-
-scipy
-requests
-optuna
-ollama
 
 # Logging
 loguru
