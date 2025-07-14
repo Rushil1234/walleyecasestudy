@@ -46,5 +46,10 @@ lxml[html_clean]
 openpyxl
 xlrd
 
+scipy
+requests
+optuna
+ollama
+
 # Logging
 loguru
