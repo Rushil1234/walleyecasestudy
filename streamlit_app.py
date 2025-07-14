@@ -16,7 +16,7 @@ from src.main import SmartSignalFilter
 st.set_page_config(page_title="Rushil Kakkad Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities", layout="wide")
 
 # Main header with Walleye branding
-st.title("Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities (XOP)")
+st.title("Rushil Kakkad Walleye Case Study: Smart Signal Filtering for Oil-Linked Equities (XOP)")
 st.markdown("""
 **Research Goal**: Filter Middle East geopolitical news using LLMs + Risk Models to generate alpha signals for XOP trading.
 
@@ -97,6 +97,18 @@ news_sources = st.sidebar.multiselect(
     help="Select news sources for geopolitical analysis"
 )
 
+# --- Add sidebar controls for volume spike feature ---
+st.sidebar.subheader("📊 Volume Spike Detection")
+volume_etfs = st.sidebar.multiselect(
+    "ETFs for Volume Spike",
+    ["XLE", "USO", "BNO"],
+    default=["XLE", "USO", "BNO"]
+)
+spike_threshold = st.sidebar.slider(
+    "Volume Spike Threshold (× 20-day avg)",
+    min_value=1.0, max_value=5.0, value=2.0, step=0.1
+)
+
 # Current parameters display
 st.sidebar.markdown("---")
 st.sidebar.subheader("📋 Current Parameters")
@@ -109,7 +121,7 @@ st.sidebar.write(f"**News Sources:** {', '.join(news_sources)}")
 
 # Create a unique key for caching based on parameters
 @st.cache_data(ttl=3600)  # Cache for 1 hour
-def run_pipeline_cached(start_date, end_date, symbols, sentiment_threshold, volatility_threshold, reliability_threshold, news_sources):
+def run_pipeline_cached(start_date, end_date, symbols, sentiment_threshold, volatility_threshold, reliability_threshold, news_sources, spike_threshold, volume_etfs):
     """Cached pipeline execution to avoid re-running with same parameters"""
     filter_system = SmartSignalFilter()
     results = filter_system.run_pipeline(
@@ -121,7 +133,9 @@ def run_pipeline_cached(start_date, end_date, symbols, sentiment_threshold, vola
         sentiment_threshold=sentiment_threshold,
         volatility_threshold=volatility_threshold,
         reliability_threshold=reliability_threshold,
-        news_sources=news_sources
+        news_sources=news_sources,
+        spike_threshold=spike_threshold,
+        spike_etfs=volume_etfs
     )
     summary = filter_system.get_summary()
     return results, summary
@@ -156,9 +170,11 @@ if run_btn:
         progress_bar.progress(25)
         
         try:
+            # Pass spike threshold and ETFs to analysis
             results, summary = run_pipeline_cached(
                 start_date, end_date, symbols, sentiment_threshold, 
-                volatility_threshold, reliability_threshold, news_sources
+                volatility_threshold, reliability_threshold, news_sources,
+                spike_threshold, volume_etfs
             )
             progress_bar.progress(100)
             status_text.text("Pipeline completed successfully!")
@@ -363,6 +379,43 @@ if results:
                 st.dataframe(trades_df, use_container_width=True)
     else:
         st.warning("⚠️ No trading results available. This may be due to no signals being executed or calculation errors.")
+    
+    # Step 2.5: Walk-Forward Validation
+    st.header("🔄 Step 2.5: Walk-Forward Validation")
+    wf_results = results.get('walk_forward_results', {})
+    if wf_results and 'splits' in wf_results:
+        splits = wf_results['splits']
+        if splits:
+            # Remove the test return and sharpe ratios by split graph
+            # Only show the split details table
+            st.subheader("Walk-Forward Split Details")
+            split_data = []
+            for split in splits:
+                try:
+                    train_start = pd.to_datetime(split['train_start']).strftime('%Y-%m-%d')
+                    train_end = pd.to_datetime(split['train_end']).strftime('%Y-%m-%d')
+                    test_start = pd.to_datetime(split['test_start']).strftime('%Y-%m-%d')
+                    test_end = pd.to_datetime(split['test_end']).strftime('%Y-%m-%d')
+                    split_data.append({
+                        'Split': split['split_id'],
+                        'Train Period': f"{train_start} to {train_end}",
+                        'Test Period': f"{test_start} to {test_end}",
+                        'Train Return': f"{split['train_performance'].get('total_return', 0):.2%}",
+                        'Test Return': f"{split['test_performance'].get('total_return', 0):.2%}",
+                        'Test Sharpe': f"{split['test_performance'].get('sharpe', 0):.2f}"
+                    })
+                except Exception as e:
+                    st.warning(f"Error processing split {split.get('split_id', 'unknown')}: {e}")
+                    continue
+            if split_data:
+                st.dataframe(pd.DataFrame(split_data), use_container_width=True)
+            else:
+                st.info("No valid split data available for display.")
+        else:
+            st.warning("⚠️ Walk-forward validation did not generate any splits. This may be due to insufficient data or configuration issues.")
+            st.info("💡 Try using a longer date range or adjusting the walk-forward parameters.")
+    else:
+        st.info("No walk-forward validation results available.")
     
     # Step 2.6: Risk Management
     st.header("⚠️ Step 2.6: Risk Management")
@@ -609,37 +662,6 @@ if results:
     else:
         st.info("No cumulative returns data available to plot.")
 
-    # --- Step 2.5: Rolling Performance Diagnostics (AI-usable) ---
-    st.header("🔍 Step 2.5: Rolling Performance Diagnostics")
-    if trading_results and 'cumulative_returns' in trading_results and not trading_results['cumulative_returns'].empty and equity_data and 'SPY' in equity_data:
-        # Compute daily returns
-        strat_cum = trading_results['cumulative_returns']
-        strat_ret = strat_cum.diff().fillna(0)
-        spy_prices = equity_data['SPY']['Close']
-        spy_cum = (spy_prices / spy_prices.iloc[0]) - 1
-        spy_ret = spy_cum.diff().fillna(0)
-        # Align indices
-        common_idx = strat_ret.index.intersection(spy_ret.index)
-        strat_ret = strat_ret.loc[common_idx]
-        spy_ret = spy_ret.loc[common_idx]
-        strat_cum = strat_cum.loc[common_idx]
-        spy_cum = spy_cum.loc[common_idx]
-        window = 60
-        # Rolling Sharpe
-        rolling_sharpe = strat_ret.rolling(window).mean() / (strat_ret.rolling(window).std() + 1e-6) * (252 ** 0.5)
-        # Rolling correlation
-        rolling_corr = strat_ret.rolling(window).corr(spy_ret)
-        # Rolling outperformance
-        rolling_outperf = (strat_cum - spy_cum).rolling(window).mean()
-        st.subheader("Rolling Sharpe Ratio (Strategy)")
-        st.line_chart(rolling_sharpe.dropna())
-        st.subheader("Rolling Correlation with S&P 500 (SPY)")
-        st.line_chart(rolling_corr.dropna())
-        st.subheader("Rolling Outperformance vs. S&P 500 (SPY)")
-        st.line_chart(rolling_outperf.dropna())
-    else:
-        st.info("Not enough data for rolling performance diagnostics.")
-
     # --- Risk metrics chart ---
     risk_metrics_keys = ['volatility', 'var_95', 'cvar_95', 'max_drawdown']
     if risk_analysis and all(k in risk_analysis for k in risk_metrics_keys):
@@ -666,6 +688,7 @@ if results:
     else:
         st.info("No risk metrics data available to plot.")
     
+    # --- Move Download Results and AI Agent Chain-of-Thought to the end ---
     # Download section
     st.header("💾 Download Results")
     
@@ -702,85 +725,37 @@ if results:
                 file_name=f"trading_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json"
             )
-    
-    # --- Smarter Ensemble Signal Logic ---
-    # Example: combine news sentiment, MA cross, RSI, SPY, VIX
-    signals = results.get('signals', pd.DataFrame())
-    equity_data = results.get('equity_data', {})
-    if not signals.empty and 'XOP' in equity_data:
-        xop_prices = equity_data['XOP']['Close']
-        # Technical signals
-        signals['ma_fast'] = xop_prices.rolling(5).mean()
-        signals['ma_slow'] = xop_prices.rolling(20).mean()
-        signals['ma_cross'] = (signals['ma_fast'] > signals['ma_slow']).astype(int)
-        # RSI
-        delta = xop_prices.diff()
-        up = delta.clip(lower=0)
-        down = -delta.clip(upper=0)
-        roll_up = up.rolling(14).mean()
-        roll_down = down.rolling(14).mean()
-        rs = roll_up / (roll_down + 1e-6)
-        signals['rsi'] = 100 - (100 / (1 + rs))
-        signals['rsi_signal'] = ((signals['rsi'] < 30) | (signals['rsi'] > 70)).astype(int)
-        # Macro factors (SPY, VIX)
-        if 'SPY' in equity_data:
-            signals['spy_return'] = equity_data['SPY']['Close'].pct_change()
-        if 'VIX' in equity_data:
-            signals['vix_level'] = equity_data['VIX']['Close']
-        # Composite ensemble signal (robust to missing columns)
-        import pandas as pd
-        signals['ensemble_signal'] = (
-            0.3 * signals.get('signal', pd.Series(0, index=signals.index)).fillna(0) +
-            0.2 * signals.get('ma_cross', pd.Series(0, index=signals.index)).fillna(0) +
-            0.2 * signals.get('rsi_signal', pd.Series(0, index=signals.index)).fillna(0) +
-            0.15 * signals.get('spy_return', pd.Series(0, index=signals.index)).fillna(0) +
-            0.15 * (1 - (signals.get('vix_level', pd.Series(0, index=signals.index)) / signals.get('vix_level', pd.Series(1, index=signals.index)).max()))
-        )
-        # Regime awareness: adapt threshold
-        vol = xop_prices.pct_change().rolling(20).std()
-        high_vol = vol > vol.median()
-        signals['ensemble_threshold'] = 0.2 if high_vol.any() else 0.1
-        signals['final_trade'] = (signals['ensemble_signal'] > signals['ensemble_threshold']).astype(int)
-        results['signals'] = signals
-    # --- AI Agent Chain-of-Thought ---
-    # For each trade, generate a rationale
-    import random
-    ai_explanations = []
-    if not signals.empty:
-        for idx, row in signals.tail(10).iterrows():
-            prompt = (
-                f"You are a trading AI. News sentiment: {row.get('sentiment', 0):.2f}. "
-                f"MA cross: {row.get('ma_cross', 0)}, RSI: {row.get('rsi', 0):.1f}, SPY return: {row.get('spy_return', 0):.2%}, "
-                f"VIX: {row.get('vix_level', 0):.2f}. Vol regime: {'High' if row.get('ensemble_threshold', 0.2) > 0.15 else 'Low'}. "
-                f"Composite signal: {row.get('ensemble_signal', 0):.2f}. "
-                f"Should we trade? {'Yes' if row.get('final_trade', 0) else 'No'}"
-            )
-            # Simulate LLM reasoning (replace with real LLM if available)
-            rationale = (
-                f"Signal is {'strong' if row.get('ensemble_signal', 0) > row.get('ensemble_threshold', 0.2) else 'weak'}. "
-                f"News sentiment is {row.get('sentiment', 0):.2f}. "
-                f"Technicals: MA cross={'Yes' if row.get('ma_cross', 0) else 'No'}, RSI={row.get('rsi', 0):.1f}. "
-                f"Macro: SPY return={row.get('spy_return', 0):.2%}, VIX={row.get('vix_level', 0):.2f}. "
-                f"Regime: {'High Volatility' if row.get('ensemble_threshold', 0.2) > 0.15 else 'Low Volatility'}. "
-                f"Decision: {'Trade' if row.get('final_trade', 0) else 'No Trade'}. "
-                f"Confidence: {random.uniform(0.6, 0.95):.2f}"
-            )
-            ai_explanations.append({
-                'date': str(idx),
-                'prompt': prompt,
-                'rationale': rationale,
-                'decision': 'Trade' if row.get('final_trade', 0) else 'No Trade',
-                'confidence': float(rationale.split('Confidence: ')[-1]) if 'Confidence:' in rationale else None
-            })
-    results['ai_explanations'] = ai_explanations
 
-    # --- Display AI Agent Explanations ---
+    # --- AI Agent Chain-of-Thought (Last 10 Trades) ---
     if results.get('ai_explanations'):
         st.subheader('AI Agent Chain-of-Thought (Last 10 Trades)')
         for exp in results['ai_explanations']:
             with st.expander(f"{exp['date']} | {exp['decision']} | Confidence: {exp['confidence']:.2f}"):
                 st.markdown(f"**Prompt:** {exp['prompt']}")
                 st.markdown(f"**Rationale:** {exp['rationale']}")
+    
+    # --- Visualize volume spike features ---
+    if 'volume_spike_features' in results and not results['volume_spike_features'].empty:
+        st.subheader("Volume Spike Features")
+        spike_df = results['volume_spike_features'][[etf + '_spike' for etf in volume_etfs if etf + '_spike' in results['volume_spike_features']]]
+        if not spike_df.empty:
+            st.line_chart(spike_df)
+        else:
+            st.info("No spike features available for selected ETFs.")
+
+    # --- Modify signal logic to require a volume spike in the same or previous 3 days ---
+    if 'signals' in results and 'volume_spike_features' in results:
+        signals = results['signals']
+        spike_df = results['volume_spike_features']
+        for etf in volume_etfs:
+            spike_col = etf + '_spike'
+            if spike_col in spike_df:
+                # Rolling 3-day window for spike
+                spike_window = spike_df[spike_col].rolling(window=3, min_periods=1).max()
+                # Only allow trade if spike in window
+                if 'final_trade' in signals:
+                    signals['final_trade'] = signals['final_trade'] & (spike_window > 0)
+        results['signals'] = signals
     
     # Footer
     st.markdown("---")
