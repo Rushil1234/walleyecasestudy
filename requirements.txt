@@ -1,43 +1,50 @@
+# Core & Data Manipulation
 streamlit
 numpy
 pandas
-scikit-learn
-matplotlib
-seaborn
-plotly
-requests
-yfinance
-pandas-datareader
-PyYAML
 python-dotenv
-statsmodels
-joblib
-loguru
+PyYAML
 tqdm
 python-dateutil
 pytz
-# NLP/AI (if used)
+
+# Machine Learning & AI
+scikit-learn
 transformers
 torch
 sentence-transformers
-nltk
-textblob
-vaderSentiment
 langchain
 spacy
 tokenizers
-# Web scraping (if used)
+shap
+joblib
+
+# NLP & Sentiment Analysis
+nltk
+textblob
+vaderSentiment
+
+# Data Visualization
+matplotlib
+seaborn
+plotly
+
+# Financial Data & Analysis
+yfinance
+pandas-datareader
+statsmodels
+pandas-ta
+arch
+
+# Web Scraping & HTML Processing
 beautifulsoup4
 newspaper3k
 feedparser
-lxml
-# Technical/financial analysis
-pandas-ta
-arch
-# Excel support (if used)
+lxml[html_clean]
+
+# Excel Support
 openpyxl
 xlrd
-# SHAP for explainability
-shap
-newspaper3k
-lxml
+
+# Logging
+loguru
