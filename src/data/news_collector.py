@@ -110,7 +110,7 @@ class NewsDataCollector:
         # Ensure published_date column exists and is datetime
         if 'published_date' in df.columns:
             try:
-                df['published_date'] = pd.to_datetime(df['published_date'])
+                df['published_date'] = pd.to_datetime(df['published_date'], utc=True)
             except Exception as e:
                 logger.warning(f"Error converting published_date: {e}")
                 # Create a fallback date column
