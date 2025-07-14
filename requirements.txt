@@ -39,3 +39,5 @@ openpyxl
 xlrd
 # SHAP for explainability
 shap
+newspaper3k
+lxml
