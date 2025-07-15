@@ -7,6 +7,9 @@ This system implements a contrarian trading strategy for oil-related stocks (XOP
 [[https://kakkadwalleyecasestudy.streamlit.app/
 ](url)](https://kakkadwalleyecasestudy.streamlit.app/)
 
+
+#### Streamlit project is working as expected locally but when I went to Delpoy it on the cloud there is error with News not pulling properly and did not have the time to fix the error on the cloud, but if you do go and run it locally everything should work as expected (streamlit)! 
+
 ## Key Features
 
 ### Agentic AI System
