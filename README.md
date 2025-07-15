@@ -101,22 +101,6 @@ sentiment:
 - **Information Ratio**: Alpha relative to benchmark
 - **Calmar Ratio**: Annual return / maximum drawdown
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Disclaimer
-
-This system is for research and educational purposes only. Past performance does not guarantee future results. Always consult with a financial advisor before making investment decisions.
-
 ## References
 
 - VanEck Vectors Oil Services ETF (XOP) research
